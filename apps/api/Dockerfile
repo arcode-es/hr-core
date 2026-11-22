@@ -1,5 +1,5 @@
 # Contexto de build: raíz del monorepo.
-FROM node:22-alpine AS base
+FROM node:26-alpine AS base
 RUN apk add --no-cache openssl && corepack enable
 WORKDIR /repo
 
@@ -12,7 +12,7 @@ COPY packages/shared packages/shared
 COPY apps/api apps/api
 RUN pnpm --filter @hr/shared build && pnpm --filter @hr/api build
 
-FROM node:22-alpine AS runtime
+FROM node:26-alpine AS runtime
 RUN apk add --no-cache openssl
 # Versión publicada (la pasa el flujo de imágenes al etiquetar); la muestra /api/v1/health.
 ARG APP_VERSION=dev
