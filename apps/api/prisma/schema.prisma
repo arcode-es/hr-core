@@ -1,0 +1,900 @@
+// Esquema de datos — HR-Core
+//
+// Convenciones:
+//  · Tablas y columnas en snake_case; identificadores UUID generados por PostgreSQL.
+//  · Todas las marcas de tiempo son timestamptz en UTC.
+//  · "Espacio personal" = filas con organization_id NULL que pertenecen a user_id.
+//  · PostGIS: las columnas `geom` (geography) las mantiene un trigger a partir de
+//    latitude/longitude; ver la migración inicial.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ── Enumerados ──────────────────────────────────────────────────────────
+
+enum MembershipRole {
+  ADMIN
+  MANAGER
+  EMPLOYEE
+  INSPECTOR
+
+  @@map("membership_role")
+}
+
+enum EntryType {
+  WORK
+  BREAK
+  TRAVEL
+
+  @@map("entry_type")
+}
+
+enum BreakKind {
+  MEAL
+  REST
+  OTHER
+
+  @@map("break_kind")
+}
+
+enum EntryOrigin {
+  REALTIME
+  MANUAL
+
+  @@map("entry_origin")
+}
+
+enum ApprovalStatus {
+  APPROVED
+  PENDING
+  REJECTED
+
+  @@map("approval_status")
+}
+
+enum ExpenseCategory {
+  MEAL
+  FUEL
+  TOLL
+  LODGING
+  MATERIAL
+  MILEAGE
+  OTHER
+
+  @@map("expense_category")
+}
+
+enum ExpenseStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  REIMBURSED
+
+  @@map("expense_status")
+}
+
+enum PaymentMethod {
+  COMPANY_CARD
+  EMPLOYEE_PAID
+
+  @@map("payment_method")
+}
+
+enum DocumentCategory {
+  PAYROLL
+  CONTRACT
+  SAFETY
+  CERTIFICATE
+  ANNOUNCEMENT
+  MEDICAL_LEAVE
+  /// Registro de jornada mensual que la empresa envía para firmar (art. 35.5 ET).
+  TIMESHEET
+  OTHER
+
+  @@map("document_category")
+}
+
+enum DocumentStatus {
+  SENT
+  VIEWED
+  SIGNED
+
+  @@map("document_status")
+}
+
+enum NotificationType {
+  SHIFT_PUBLISHED
+  SHIFT_UPDATED
+  TIME_ENTRY_PENDING
+  TIME_ENTRY_REVIEWED
+  EXPENSE_PENDING
+  EXPENSE_REVIEWED
+  DOCUMENT_RECEIVED
+  DOCUMENT_SIGNED
+  INVITATION
+  ABSENCE_PENDING
+  ABSENCE_REVIEWED
+  ALERT
+  DOCUMENT_REMINDER
+
+  @@map("notification_type")
+}
+
+/// Cómo se comprobó que la persona estaba donde fichó.
+enum PresenceMethod {
+  GPS
+  QR
+  KIOSK
+  NONE
+
+  @@map("presence_method")
+}
+
+/// Avisos de límites de jornada y descanso.
+enum AlertKind {
+  MISSED_CLOCK_IN
+  LONG_WORKDAY
+  SHORT_REST
+  LONG_ORDINARY_DAY
+  OVERTIME_YEAR_70
+  OVERTIME_YEAR_100
+
+  @@map("alert_kind")
+}
+
+enum HolidayScope {
+  NATIONAL
+  REGIONAL
+  LOCAL
+
+  @@map("holiday_scope")
+}
+
+enum AbsenceType {
+  VACATION
+  PERSONAL
+  SICK_LEAVE
+  PAID_LEAVE
+  UNPAID
+  OTHER
+
+  @@map("absence_type")
+}
+
+enum AbsenceStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+
+  @@map("absence_status")
+}
+
+// ── Identidad y espacios ────────────────────────────────────────────────
+
+model Organization {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name      String
+  taxId     String?  @map("tax_id")
+  /// OrganizationSettings (ver @hr/shared)
+  settings  Json     @default("{}")
+  /// Empresa de demostración: se borra y se vuelve a sembrar cada noche.
+  isDemo    Boolean  @default(false) @map("is_demo")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  memberships       Membership[]
+  invitations       Invitation[]
+  locations         Location[]
+  shifts            Shift[]
+  timeEntries       TimeEntry[]
+  handoverNotes     HandoverNote[]
+  expenses          Expense[]
+  expenseCategories CustomExpenseCategory[]
+  documents         Document[]
+  notifications     Notification[]
+  holidays          Holiday[]
+  absences          Absence[]
+  kiosks            KioskDevice[]
+  alerts            Alert[]
+  departments       Department[]
+  payrollImports    PayrollImport[]
+  shiftPatterns     ShiftPattern[]
+
+  @@map("organizations")
+}
+
+model User {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email           String    @unique @db.Citext
+  passwordHash    String    @map("password_hash")
+  fullName        String    @map("full_name")
+  dniNie          String?   @map("dni_nie")
+  phone           String?
+  locale          String    @default("es")
+  timezone        String    @default("Europe/Madrid")
+  /// Administrador de la plataforma (no de una organización concreta).
+  isSuperadmin    Boolean   @default(false) @map("is_superadmin")
+  active          Boolean   @default(true)
+  /// NULL hasta que confirma el correo (solo se exige en instalaciones abiertas).
+  emailVerifiedAt DateTime? @map("email_verified_at") @db.Timestamptz(3)
+  /// Intentos fallidos seguidos; al llegar al límite la cuenta se bloquea un rato.
+  failedLogins    Int       @default(0) @map("failed_logins")
+  lockedUntil     DateTime? @map("locked_until") @db.Timestamptz(3)
+  lastLoginAt     DateTime? @map("last_login_at") @db.Timestamptz(3)
+  /// Qué avisos quiere recibir también por correo (EmailPrefs en @hr/shared).
+  emailPrefs      Json      @default("{}") @map("email_prefs")
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  memberships        Membership[]
+  refreshTokens      RefreshToken[]
+  passwordResets     PasswordResetToken[]
+  emailVerifications EmailVerificationToken[]
+  pushSubscriptions  PushSubscription[]
+  notifications      Notification[]
+  locations          Location[]
+  shifts             Shift[]                  @relation("ShiftUser")
+  shiftsCreated      Shift[]                  @relation("ShiftCreatedBy")
+  timeEntries        TimeEntry[]              @relation("TimeEntryUser")
+  timeEntryReviews   TimeEntry[]              @relation("TimeEntryReviewer")
+  timeEntryAudits    TimeEntryAudit[]
+  handoverNotesWritten   HandoverNote[]       @relation("HandoverAuthor")
+  handoverNotesAddressed HandoverNote[]       @relation("HandoverRecipient")
+  handoverNotesReceived  HandoverNote[]       @relation("HandoverDeliveredTo")
+  expenses           Expense[]                @relation("ExpenseUser")
+  expenseReviews     Expense[]                @relation("ExpenseReviewer")
+  documentsSent      Document[]               @relation("DocumentSender")
+  documentsReceived  Document[]               @relation("DocumentRecipient")
+  invitationsSent    Invitation[]
+  absences           Absence[]                @relation("AbsenceUser")
+  absenceReviews     Absence[]                @relation("AbsenceReviewer")
+  alerts             Alert[]                  @relation("AlertUser")
+  alertsResolved     Alert[]                  @relation("AlertResolver")
+  payrollImports     PayrollImport[]
+
+  @@map("users")
+}
+
+/// Pertenencia de un usuario a una organización, con su rol en ella.
+model Membership {
+  id                  String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId              String         @map("user_id") @db.Uuid
+  organizationId      String         @map("organization_id") @db.Uuid
+  role                MembershipRole @default(EMPLOYEE)
+  jobTitle            String?        @map("job_title")
+  /// Jornada semanal pactada, para el cálculo de bolsas de horas.
+  weeklyHours         Decimal?       @map("weekly_hours") @db.Decimal(5, 2)
+  /// Coste por hora (salario y cotizaciones), para el coste estimado por obra. Solo lo ve la administración.
+  hourlyCost          Decimal?       @map("hourly_cost") @db.Decimal(8, 2)
+  /// Cuándo recibió el aviso de geolocalización de la empresa (art. 90 LOPDGDD).
+  geoNoticeAcceptedAt DateTime?      @map("geo_notice_accepted_at") @db.Timestamptz(3)
+  /// Días de vacaciones de esta persona; NULL = los de la empresa.
+  vacationDays        Int?           @map("vacation_days")
+  /// Jornada anual pactada (convenio), en horas.
+  annualHours         Decimal?       @map("annual_hours") @db.Decimal(6, 1)
+  /// PIN para fichar en el quiosco (hash argon2) y su bloqueo por intentos fallidos.
+  kioskPinHash        String?        @map("kiosk_pin_hash")
+  kioskPinFailures    Int            @default(0) @map("kiosk_pin_failures")
+  kioskLockedUntil    DateTime?      @map("kiosk_locked_until") @db.Timestamptz(3)
+  /// Código de la tarjeta QR personal para identificarse en el quiosco.
+  kioskCardCode       String?        @unique @map("kiosk_card_code")
+  departmentId        String?        @map("department_id") @db.Uuid
+  active              Boolean        @default(true)
+  createdAt           DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt           DateTime       @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user         User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  department   Department?         @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  manages      DepartmentManager[]
+
+  @@unique([userId, organizationId])
+  @@index([organizationId, role])
+  @@index([departmentId])
+  @@map("memberships")
+}
+
+/// Departamento o equipo. Un responsable con departamentos asignados solo ve a su gente.
+model Department {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  name           String
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  organization Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  members      Membership[]
+  managers     DepartmentManager[]
+  invitations  Invitation[]
+
+  @@unique([organizationId, name])
+  @@map("departments")
+}
+
+model DepartmentManager {
+  departmentId String @map("department_id") @db.Uuid
+  membershipId String @map("membership_id") @db.Uuid
+
+  department Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  membership Membership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+
+  @@id([departmentId, membershipId])
+  @@map("department_managers")
+}
+
+model Invitation {
+  id             String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId String         @map("organization_id") @db.Uuid
+  email          String         @db.Citext
+  role           MembershipRole @default(EMPLOYEE)
+  tokenHash      String         @unique @map("token_hash")
+  invitedById    String         @map("invited_by_id") @db.Uuid
+  expiresAt      DateTime       @map("expires_at") @db.Timestamptz(3)
+  acceptedAt     DateTime?      @map("accepted_at") @db.Timestamptz(3)
+  /// Datos precargados (alta masiva): se aplican al aceptar.
+  fullName       String?        @map("full_name")
+  dniNie         String?        @map("dni_nie")
+  jobTitle       String?        @map("job_title")
+  departmentId   String?        @map("department_id") @db.Uuid
+  weeklyHours    Decimal?       @map("weekly_hours") @db.Decimal(5, 2)
+  /// Envíos del correo (el primero y los reenvíos), para el límite diario.
+  sendCount      Int            @default(1) @map("send_count")
+  lastSentAt     DateTime       @default(now()) @map("last_sent_at") @db.Timestamptz(3)
+  createdAt      DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  invitedBy    User         @relation(fields: [invitedById], references: [id])
+  department   Department?  @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, email])
+  @@map("invitations")
+}
+
+/// Enlace de un solo uso para restablecer la contraseña. Solo se guarda el hash.
+model PasswordResetToken {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  tokenHash String    @unique @map("token_hash")
+  expiresAt DateTime  @map("expires_at") @db.Timestamptz(3)
+  usedAt    DateTime? @map("used_at") @db.Timestamptz(3)
+  ipAddress String?   @map("ip_address") @db.Inet
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("password_reset_tokens")
+}
+
+/// Enlace para confirmar el correo de una cuenta nueva. Solo se guarda el hash.
+model EmailVerificationToken {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  tokenHash String    @unique @map("token_hash")
+  expiresAt DateTime  @map("expires_at") @db.Timestamptz(3)
+  usedAt    DateTime? @map("used_at") @db.Timestamptz(3)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("email_verification_tokens")
+}
+
+model RefreshToken {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  tokenHash String    @unique @map("token_hash")
+  /// Agrupa la cadena de rotación: si se reutiliza un token ya rotado se revoca la familia.
+  familyId  String    @map("family_id") @db.Uuid
+  userAgent String?   @map("user_agent")
+  ipAddress String?   @map("ip_address") @db.Inet
+  expiresAt DateTime  @map("expires_at") @db.Timestamptz(3)
+  revokedAt DateTime? @map("revoked_at") @db.Timestamptz(3)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([familyId])
+  @@map("refresh_tokens")
+}
+
+// ── Ubicaciones y geocercas ─────────────────────────────────────────────
+
+model Location {
+  id                   String                                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  /// NULL = ubicación personal de `userId`.
+  organizationId       String?                                @map("organization_id") @db.Uuid
+  userId               String?                                @map("user_id") @db.Uuid
+  name                 String
+  address              String?
+  latitude             Float
+  longitude            Float
+  geofenceRadiusMeters Int                                    @default(200) @map("geofence_radius_meters")
+  color                String?
+  isActive             Boolean                                @default(true) @map("is_active")
+  /// Código del QR impreso en la ubicación: fichar escaneándolo prueba la presencia sin GPS.
+  qrCode               String?                                @unique @map("qr_code")
+  /// Mantenida por trigger a partir de latitude/longitude.
+  geom                 Unsupported("geography(Point, 4326)")?
+  createdAt            DateTime                               @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt            DateTime                               @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  shifts       Shift[]
+  timeEntries  TimeEntry[]
+  handoverNotes HandoverNote[]
+  expenses     Expense[]
+  holidays     Holiday[]
+  kiosks       KioskDevice[]
+
+  @@index([organizationId, isActive])
+  @@index([userId, isActive])
+  @@index([geom], map: "locations_geom_idx", type: Gist)
+  @@map("locations")
+}
+
+// ── Cuadrantes ──────────────────────────────────────────────────────────
+
+/// Patrón de turnos rotativos: un ciclo de N días, cada uno con turno o libre.
+model ShiftPattern {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  name           String
+  /// PatternDay[] (ver @hr/shared): un elemento por día del ciclo; null = libre.
+  days           Json
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, name])
+  @@map("shift_patterns")
+}
+
+model Shift {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId String?   @map("organization_id") @db.Uuid
+  userId         String    @map("user_id") @db.Uuid
+  locationId     String?   @map("location_id") @db.Uuid
+  date           DateTime  @db.Date
+  /// Instantes absolutos: un turno nocturno termina al día siguiente.
+  plannedStart   DateTime  @map("planned_start") @db.Timestamptz(3)
+  plannedEnd     DateTime  @map("planned_end") @db.Timestamptz(3)
+  breakMinutes   Int       @default(0) @map("break_minutes")
+  notes          String?
+  /// NULL = borrador, no visible para el empleado.
+  publishedAt    DateTime? @map("published_at") @db.Timestamptz(3)
+  createdById    String    @map("created_by") @db.Uuid
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User          @relation("ShiftUser", fields: [userId], references: [id], onDelete: Cascade)
+  location     Location?     @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  createdBy    User          @relation("ShiftCreatedBy", fields: [createdById], references: [id])
+  timeEntries  TimeEntry[]
+
+  @@index([userId, date])
+  @@index([organizationId, date])
+  @@map("shifts")
+}
+
+// ── Fichajes ────────────────────────────────────────────────────────────
+
+/// Un tramo de tiempo (trabajo, pausa o desplazamiento). Los tramos de una misma
+/// jornada comparten `workdayId`. Nunca se borran: se anulan con `voidedAt`.
+model TimeEntry {
+  id                     String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId         String?        @map("organization_id") @db.Uuid
+  userId                 String         @map("user_id") @db.Uuid
+  workdayId              String         @map("workday_id") @db.Uuid
+  shiftId                String?        @map("shift_id") @db.Uuid
+  locationId             String?        @map("location_id") @db.Uuid
+  entryType              EntryType      @default(WORK) @map("entry_type")
+  breakKind              BreakKind?     @map("break_kind")
+  /// Hora oficial: la del servidor en fichajes en línea; la declarada en manuales u offline.
+  startTime              DateTime       @map("start_time") @db.Timestamptz(3)
+  endTime                DateTime?      @map("end_time") @db.Timestamptz(3)
+  /// Hora del dispositivo, para detectar desfases y manipulación del reloj.
+  clientStartTime        DateTime?      @map("client_start_time") @db.Timestamptz(3)
+  clientEndTime          DateTime?      @map("client_end_time") @db.Timestamptz(3)
+  startLat               Float?         @map("start_lat")
+  startLng               Float?         @map("start_lng")
+  startAccuracy          Float?         @map("start_accuracy")
+  startAddress           String?        @map("start_address")
+  endLat                 Float?         @map("end_lat")
+  endLng                 Float?         @map("end_lng")
+  endAccuracy            Float?         @map("end_accuracy")
+  endAddress             String?        @map("end_address")
+  isWithinGeofence       Boolean?       @map("is_within_geofence")
+  /// Metros hasta el borde de la geocerca asignada cuando se ficha fuera.
+  geofenceDistanceMeters Int?           @map("geofence_distance_meters")
+  startPhotoKey          String?        @map("start_photo_key")
+  endPhotoKey            String?        @map("end_photo_key")
+  /// Las fotos se borraron al cumplirse el plazo de conservación de la empresa.
+  photosPurgedAt         DateTime?      @map("photos_purged_at") @db.Timestamptz(3)
+  /// La empresa pide foto y no se pudo hacer (cámara denegada o sin cámara).
+  photoMissing           Boolean        @default(false) @map("photo_missing")
+  presenceMethod         PresenceMethod @default(NONE) @map("presence_method")
+  /// Minutos de retraso sobre el inicio del turno, pasada la tolerancia (solo en el primer tramo).
+  lateMinutes            Int?           @map("late_minutes")
+  origin                 EntryOrigin    @default(REALTIME)
+  /// TRUE si el evento se registró sin conexión y se sincronizó después.
+  syncedOffline          Boolean        @default(false) @map("synced_offline")
+  /// Clave de idempotencia generada en el dispositivo para la cola offline.
+  clientUuid             String?        @unique @map("client_uuid") @db.Uuid
+  approvalStatus         ApprovalStatus @default(APPROVED) @map("approval_status")
+  reviewedById           String?        @map("reviewed_by") @db.Uuid
+  reviewedAt             DateTime?      @map("reviewed_at") @db.Timestamptz(3)
+  rejectionReason        String?        @map("rejection_reason")
+  notes                  String?
+  voidedAt               DateTime?      @map("voided_at") @db.Timestamptz(3)
+  /// Corrección propuesta: jornada a la que sustituirá si se aprueba.
+  replacesWorkdayId      String?        @map("replaces_workday_id") @db.Uuid
+  createdAt              DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt              DateTime       @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  organization Organization?    @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  user         User             @relation("TimeEntryUser", fields: [userId], references: [id], onDelete: Restrict)
+  shift        Shift?           @relation(fields: [shiftId], references: [id], onDelete: SetNull)
+  location     Location?        @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  reviewedBy   User?            @relation("TimeEntryReviewer", fields: [reviewedById], references: [id])
+  audits       TimeEntryAudit[]
+
+  @@index([userId, startTime])
+  @@index([organizationId, startTime])
+  @@index([organizationId, approvalStatus])
+  @@index([workdayId])
+  @@index([replacesWorkdayId])
+  @@map("time_entries")
+}
+
+/// Eventos de fichaje ya procesados. Permite reintentar cualquier evento (también
+/// pausar, reanudar y finalizar) sin aplicarlo dos veces: la cola sin conexión
+/// del móvil reenvía hasta que el servidor confirma.
+model ClockEvent {
+  clientUuid String   @id @map("client_uuid") @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@index([userId])
+  @@map("clock_events")
+}
+
+/// Trazabilidad inmutable: un trigger impide UPDATE y DELETE sobre esta tabla.
+model TimeEntryAudit {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  timeEntryId     String   @map("time_entry_id") @db.Uuid
+  changedByUserId String   @map("changed_by_user_id") @db.Uuid
+  action          String
+  oldValues       Json?    @map("old_values_json")
+  newValues       Json?    @map("new_values_json")
+  reason          String
+  changedAt       DateTime @default(now()) @map("changed_at") @db.Timestamptz(3)
+  ipAddress       String?  @map("ip_address") @db.Inet
+  userAgent       String?  @map("user_agent")
+
+  timeEntry TimeEntry @relation(fields: [timeEntryId], references: [id], onDelete: Restrict)
+  changedBy User      @relation(fields: [changedByUserId], references: [id], onDelete: Restrict)
+
+  @@index([timeEntryId, changedAt])
+  @@map("time_entry_audits")
+}
+
+/// Nota de relevo: se deja al terminar la jornada y la recibe quien empieza después.
+model HandoverNote {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  authorId       String    @map("author_id") @db.Uuid
+  /// NULL = para quien empiece el siguiente turno; si no, para esa persona en concreto.
+  recipientId    String?   @map("recipient_id") @db.Uuid
+  /// Ubicación en la que se terminó la jornada: el relevo es de esa obra o centro.
+  locationId     String?   @map("location_id") @db.Uuid
+  body           String
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  /// Quién la recibió al iniciar su jornada, y cuándo.
+  deliveredToId  String?   @map("delivered_to_id") @db.Uuid
+  deliveredAt    DateTime? @map("delivered_at") @db.Timestamptz(3)
+  readAt         DateTime? @map("read_at") @db.Timestamptz(3)
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  author       User         @relation("HandoverAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  recipient    User?        @relation("HandoverRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  deliveredTo  User?        @relation("HandoverDeliveredTo", fields: [deliveredToId], references: [id], onDelete: Cascade)
+  location     Location?    @relation(fields: [locationId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, deliveredAt, createdAt])
+  @@index([deliveredToId, readAt])
+  @@index([authorId, createdAt])
+  @@map("handover_notes")
+}
+
+// ── Gastos ──────────────────────────────────────────────────────────────
+
+model Expense {
+  id               String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId   String?         @map("organization_id") @db.Uuid
+  userId           String          @map("user_id") @db.Uuid
+  locationId       String?         @map("location_id") @db.Uuid
+  category         ExpenseCategory
+  customCategoryId String?         @map("custom_category_id") @db.Uuid
+  amount           Decimal         @db.Decimal(12, 2)
+  taxAmount        Decimal?        @map("tax_amount") @db.Decimal(12, 2)
+  currency         String          @default("EUR") @db.Char(3)
+  date             DateTime        @db.Date
+  merchantName     String?         @map("merchant_name")
+  merchantTaxId    String?         @map("merchant_tax_id")
+  paymentMethod    PaymentMethod   @default(EMPLOYEE_PAID) @map("payment_method")
+  /// Kilometraje (solo si aplica).
+  distanceKm       Decimal?        @map("distance_km") @db.Decimal(8, 2)
+  receiptPhotoKey  String?         @map("receipt_photo_key")
+  ocrData          Json?           @map("ocr_data_json")
+  notes            String?
+  status           ExpenseStatus   @default(PENDING)
+  reviewedById     String?         @map("reviewed_by") @db.Uuid
+  reviewedAt       DateTime?       @map("reviewed_at") @db.Timestamptz(3)
+  rejectionReason  String?         @map("rejection_reason")
+  reimbursedAt     DateTime?       @map("reimbursed_at") @db.Timestamptz(3)
+  clientUuid       String?         @unique @map("client_uuid") @db.Uuid
+  createdAt        DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  organization   Organization?          @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  user           User                   @relation("ExpenseUser", fields: [userId], references: [id], onDelete: Restrict)
+  location       Location?              @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  customCategory CustomExpenseCategory? @relation(fields: [customCategoryId], references: [id], onDelete: SetNull)
+  reviewedBy     User?                  @relation("ExpenseReviewer", fields: [reviewedById], references: [id])
+
+  @@index([userId, date])
+  @@index([organizationId, status])
+  @@index([organizationId, date])
+  @@map("expenses")
+}
+
+/// Categorías propias de la organización, colgadas de una categoría base.
+model CustomExpenseCategory {
+  id             String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId String          @map("organization_id") @db.Uuid
+  name           String
+  baseCategory   ExpenseCategory @default(OTHER) @map("base_category")
+  isActive       Boolean         @default(true) @map("is_active")
+  createdAt      DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  expenses     Expense[]
+
+  @@unique([organizationId, name])
+  @@map("expense_categories")
+}
+
+// ── Documentos ──────────────────────────────────────────────────────────
+
+model Document {
+  id                String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId    String           @map("organization_id") @db.Uuid
+  senderId          String           @map("sender_id") @db.Uuid
+  recipientId       String           @map("recipient_id") @db.Uuid
+  /// Agrupa los documentos creados en un mismo envío masivo.
+  batchId           String?          @map("batch_id") @db.Uuid
+  title             String
+  category          DocumentCategory @default(OTHER)
+  originalFileKey   String           @map("original_file_key")
+  originalFileName  String           @map("original_file_name")
+  mimeType          String           @map("mime_type")
+  sizeBytes         Int              @map("size_bytes")
+  originalSha256    String           @map("original_sha256") @db.Char(64)
+  requiresSignature Boolean          @default(false) @map("requires_signature")
+  status            DocumentStatus   @default(SENT)
+  viewedAt          DateTime?        @map("viewed_at") @db.Timestamptz(3)
+  signedAt          DateTime?        @map("signed_at") @db.Timestamptz(3)
+  signedFileKey     String?          @map("signed_file_key")
+  /// IP, user-agent, hash SHA-256, trazado de la firma y timestamp.
+  signatureAudit    Json?            @map("signature_audit_json")
+  /// Fecha límite para leerlo o firmarlo; se recuerda antes y después de vencer.
+  dueDate           DateTime?        @map("due_date") @db.Date
+  remindersSent     Int              @default(0) @map("reminders_sent")
+  lastReminderAt    DateTime?        @map("last_reminder_at") @db.Timestamptz(3)
+  /// Mes (AAAA-MM) del registro de jornada mensual: uno por persona y mes.
+  period            String?
+  createdAt         DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime         @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  sender       User         @relation("DocumentSender", fields: [senderId], references: [id], onDelete: Restrict)
+  recipient    User         @relation("DocumentRecipient", fields: [recipientId], references: [id], onDelete: Restrict)
+
+  @@index([recipientId, status])
+  @@index([organizationId, createdAt])
+  @@index([batchId])
+  @@index([dueDate])
+  @@index([organizationId, category, period])
+  @@map("documents")
+}
+
+/// PDF de nóminas subido para repartir por DNI: se guarda hasta 24 h mientras se revisa.
+model PayrollImport {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  createdById    String   @map("created_by") @db.Uuid
+  fileKey        String   @map("file_key")
+  fileName       String   @map("file_name")
+  pageCount      Int      @map("page_count")
+  /// DNI/NIE encontrado en cada página (null si ninguno).
+  pages          Json
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  expiresAt      DateTime @map("expires_at") @db.Timestamptz(3)
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdBy    User         @relation(fields: [createdById], references: [id], onDelete: Cascade)
+
+  @@index([expiresAt])
+  @@map("payroll_imports")
+}
+
+// ── Notificaciones ──────────────────────────────────────────────────────
+
+model Notification {
+  id             String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId         String           @map("user_id") @db.Uuid
+  organizationId String?          @map("organization_id") @db.Uuid
+  type           NotificationType
+  /// Parámetros para componer el texto traducido en el cliente y el enlace de destino.
+  payload        Json             @default("{}")
+  readAt         DateTime?        @map("read_at") @db.Timestamptz(3)
+  /// NULL mientras el push está retenido por el horario de desconexión de la empresa.
+  pushedAt       DateTime?        @map("pushed_at") @db.Timestamptz(3)
+  createdAt      DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt, createdAt])
+  @@index([pushedAt, createdAt])
+  @@map("notifications")
+}
+
+model PushSubscription {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId     String    @map("user_id") @db.Uuid
+  endpoint   String    @unique
+  p256dh     String
+  auth       String
+  userAgent  String?   @map("user_agent")
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  lastUsedAt DateTime? @map("last_used_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("push_subscriptions")
+}
+
+// ── Tareas programadas ──────────────────────────────────────────────────
+
+/// Cada ejecución de una tarea programada. La pareja (job, slot) es única: aunque
+/// haya varias instancias de la API, cada tarea se ejecuta una sola vez por turno.
+model JobRun {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  job        String
+  slot       String
+  startedAt  DateTime  @default(now()) @map("started_at") @db.Timestamptz(3)
+  finishedAt DateTime? @map("finished_at") @db.Timestamptz(3)
+  error      String?
+
+  @@unique([job, slot])
+  @@index([startedAt])
+  @@map("job_runs")
+}
+
+// ── Calendario laboral y ausencias ──────────────────────────────────────
+
+/**
+ * Día festivo. Los locales pueden afectar solo a una ubicación (otro municipio).
+ */
+model Holiday {
+  id             String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId String       @map("organization_id") @db.Uuid
+  date           DateTime     @db.Date
+  name           String
+  scope          HolidayScope
+  /// NULL = toda la empresa.
+  locationId     String?      @map("location_id") @db.Uuid
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  location     Location?    @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, date])
+  @@map("holidays")
+}
+
+/**
+ * Vacaciones, asuntos propios, bajas y permisos. Fechas locales, ambas incluidas.
+ */
+model Absence {
+  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId  String        @map("organization_id") @db.Uuid
+  userId          String        @map("user_id") @db.Uuid
+  type            AbsenceType
+  startDate       DateTime      @map("start_date") @db.Date
+  endDate         DateTime      @map("end_date") @db.Date
+  halfDay         Boolean       @default(false) @map("half_day")
+  /// Días que consume, calculados al pedirla (laborables o naturales, según la empresa).
+  days            Decimal       @db.Decimal(5, 1)
+  status          AbsenceStatus @default(PENDING)
+  reason          String?
+  /// Justificante (p. ej. el parte de baja), en el almacenamiento privado.
+  attachmentKey   String?       @map("attachment_key")
+  reviewedById    String?       @map("reviewed_by") @db.Uuid
+  reviewedAt      DateTime?     @map("reviewed_at") @db.Timestamptz(3)
+  rejectionReason String?       @map("rejection_reason")
+  createdAt       DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User         @relation("AbsenceUser", fields: [userId], references: [id], onDelete: Restrict)
+  reviewedBy   User?        @relation("AbsenceReviewer", fields: [reviewedById], references: [id])
+
+  @@index([organizationId, startDate])
+  @@index([userId, startDate])
+  @@index([organizationId, status])
+  @@map("absences")
+}
+
+// ── Quioscos y alertas ──────────────────────────────────────────────────
+
+/**
+ * Tablet de fichaje compartida en una obra o centro. Se empareja con un código de un solo uso.
+ */
+model KioskDevice {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId   String    @map("organization_id") @db.Uuid
+  locationId       String?   @map("location_id") @db.Uuid
+  name             String
+  /// Token del dispositivo (solo el hash), tras emparejarlo.
+  tokenHash        String?   @unique @map("token_hash")
+  /// Código de emparejamiento (hash) y su caducidad.
+  pairingCodeHash  String?   @unique @map("pairing_code_hash")
+  pairingExpiresAt DateTime? @map("pairing_expires_at") @db.Timestamptz(3)
+  lastSeenAt       DateTime? @map("last_seen_at") @db.Timestamptz(3)
+  revokedAt        DateTime? @map("revoked_at") @db.Timestamptz(3)
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  location     Location?    @relation(fields: [locationId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
+  @@map("kiosk_devices")
+}
+
+/**
+ * Aviso de jornada (entrada no fichada, jornada larga, poco descanso...). Uno por persona, tipo y día.
+ */
+model Alert {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  userId         String    @map("user_id") @db.Uuid
+  kind           AlertKind
+  date           DateTime  @db.Date
+  /// Datos para el texto: horas, minutos, turno...
+  data           Json      @default("{}")
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  resolvedAt     DateTime? @map("resolved_at") @db.Timestamptz(3)
+  resolvedById   String?   @map("resolved_by") @db.Uuid
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User         @relation("AlertUser", fields: [userId], references: [id], onDelete: Cascade)
+  resolvedBy   User?        @relation("AlertResolver", fields: [resolvedById], references: [id])
+
+  @@unique([organizationId, userId, kind, date])
+  @@index([organizationId, resolvedAt])
+  @@map("alerts")
+}

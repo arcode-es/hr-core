@@ -1,0 +1,374 @@
+@import 'tailwindcss';
+@import '@fontsource-variable/dm-sans';
+@import '@fontsource-variable/geist-mono';
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Sistema de diseño — tokens semánticos
+   Los componentes usan solo estos nombres (bg-surface, text-fg-muted…),
+   nunca colores directos: así los tres temas salen de un único sitio.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+@custom-variant contrast (&:where([data-theme='contrast'], [data-theme='contrast'] *));
+
+:root,
+[data-theme='dark'] {
+  color-scheme: dark;
+  --bg: #000409;
+  --surface: #060c17;
+  --surface-2: #0c1626;
+  --border: #162238;
+  --border-strong: #2b3d5e;
+  --fg: #f4f7fb;
+  --fg-muted: #a3b1c7;
+  --fg-subtle: #8595af;
+  --accent: #2f97ff;
+  --accent-hover: #5cb0ff;
+  --accent-fg: #00101f;
+  --accent-text: #6db7ff;
+  --accent-soft: #0a2242;
+  --success: #2fd08f;
+  --success-soft: #072a1e;
+  --success-text: #6ee7b7;
+  --warning: #f0b445;
+  --warning-soft: #2d2206;
+  --warning-text: #f7cf7d;
+  --danger: #ff5c6c;
+  --danger-hover: #ff7b88;
+  --danger-soft: #360f15;
+  --danger-text: #ffa3ad;
+  --ring: #6db7ff;
+  --border-w: 1px;
+  /* Botón principal: pastilla blanca sobre negro, como en la landing. */
+  --cta: #ffffff;
+  --cta-hover: #dbeaff;
+  --cta-fg: #000409;
+  --glow: 0 0 0 1px rgb(47 151 255 / 0.25), 0 18px 50px -24px rgb(0 131 255 / 0.55);
+  --shadow-card: 0 1px 0 rgb(255 255 255 / 0.03) inset;
+  --shadow-pop: 0 0 0 1px rgb(109 183 255 / 0.12), 0 24px 70px -20px rgb(0 0 0 / 0.9);
+  --backdrop: radial-gradient(90rem 42rem at 50% -14rem, #06224f 0%, transparent 62%), radial-gradient(60rem 40rem at 100% 100%, #03142f 0%, transparent 60%);
+}
+
+[data-theme='light'] {
+  color-scheme: light;
+  --bg: #f2f5fa;
+  --surface: #ffffff;
+  --surface-2: #e9eff7;
+  --border: #dae2ee;
+  --border-strong: #bac6d9;
+  --fg: #050b16;
+  --fg-muted: #4a5770;
+  --fg-subtle: #5b6880;
+  --accent: #0067d6;
+  --accent-hover: #0057b8;
+  --accent-fg: #ffffff;
+  --accent-text: #005cbd;
+  --accent-soft: #e2eeff;
+  --success: #0c8f63;
+  --success-soft: #e4f6ee;
+  --success-text: #086547;
+  --warning: #c98a12;
+  --warning-soft: #fdf3da;
+  --warning-text: #835508;
+  --danger: #dc2626;
+  --danger-hover: #b91c1c;
+  --danger-soft: #fdecec;
+  --danger-text: #a61b1b;
+  --ring: #0067d6;
+  --border-w: 1px;
+  --cta: #050b16;
+  --cta-hover: #1b2740;
+  --cta-fg: #ffffff;
+  --glow: 0 0 0 1px rgb(0 103 214 / 0.2), 0 18px 40px -24px rgb(0 103 214 / 0.45);
+  --shadow-card: 0 1px 2px rgb(5 11 22 / 0.04), 0 8px 24px -12px rgb(5 11 22 / 0.08);
+  --shadow-pop: 0 16px 48px -12px rgb(5 11 22 / 0.28);
+  --backdrop: radial-gradient(80rem 36rem at 50% -14rem, #d7e8ff 0%, transparent 62%);
+}
+
+/* Alto contraste para exteriores a pleno sol: blanco y negro puros, bordes gruesos, sin sombras. */
+[data-theme='contrast'] {
+  color-scheme: light;
+  --bg: #ffffff;
+  --surface: #ffffff;
+  --surface-2: #ececec;
+  --border: #000000;
+  --border-strong: #000000;
+  --fg: #000000;
+  --fg-muted: #1c1c1c;
+  --fg-subtle: #333333;
+  --accent: #1a149e;
+  --accent-hover: #0f0a70;
+  --accent-fg: #ffffff;
+  --accent-text: #1a149e;
+  --accent-soft: #dedcff;
+  --success: #00573a;
+  --success-soft: #d2f2e3;
+  --success-text: #003d28;
+  --warning: #6b4200;
+  --warning-soft: #ffe9b8;
+  --warning-text: #4d2f00;
+  --danger: #a30000;
+  --danger-hover: #7a0000;
+  --danger-soft: #ffd9d9;
+  --danger-text: #7a0000;
+  --ring: #000000;
+  --border-w: 2px;
+  --cta: #000000;
+  --cta-hover: #1c1c1c;
+  --cta-fg: #ffffff;
+  --glow: 0 0 0 2px #000;
+  --backdrop: none;
+  --shadow-card: none;
+  --shadow-pop: 0 0 0 2px #000;
+}
+
+@theme inline {
+  --font-sans: 'DM Sans Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'Geist Mono Variable', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+  /* Titulares de trazo fino: los pesos «bold» del sistema son más ligeros que los habituales. */
+  --font-weight-semibold: 560;
+  --font-weight-bold: 620;
+  --color-cta: var(--cta);
+  --color-cta-hover: var(--cta-hover);
+  --color-cta-fg: var(--cta-fg);
+  --shadow-glow: var(--glow);
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-fg: var(--fg);
+  --color-fg-muted: var(--fg-muted);
+  --color-fg-subtle: var(--fg-subtle);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-fg: var(--accent-fg);
+  --color-accent-text: var(--accent-text);
+  --color-accent-soft: var(--accent-soft);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-success-text: var(--success-text);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-warning-text: var(--warning-text);
+  --color-danger: var(--danger);
+  --color-danger-hover: var(--danger-hover);
+  --color-danger-soft: var(--danger-soft);
+  --color-danger-text: var(--danger-text);
+  --shadow-card: var(--shadow-card);
+  --shadow-pop: var(--shadow-pop);
+  --radius-card: 0.875rem;
+  --radius-control: 0.75rem;
+}
+
+/* Borde con el grosor del tema (más grueso en alto contraste). */
+@utility edge {
+  border: var(--border-w) solid var(--border);
+}
+@utility edge-b {
+  border-bottom: var(--border-w) solid var(--border);
+}
+@utility edge-t {
+  border-top: var(--border-w) solid var(--border);
+}
+@utility edge-r {
+  border-right: var(--border-w) solid var(--border);
+}
+
+/* Anillo de foco único para todos los controles. */
+@utility focus-ring {
+  outline: none;
+  &:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+}
+
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    @apply bg-bg font-sans text-fg antialiased;
+    overscroll-behavior-y: none;
+    /* Velo azul fijo detrás de todo: la profundidad del tema la da la luz, no las sombras. */
+    background-image: var(--backdrop);
+    background-attachment: fixed;
+    background-repeat: no-repeat;
+    letter-spacing: -0.005em;
+  }
+  h1,
+  h2 {
+    letter-spacing: -0.03em;
+  }
+  button,
+  [role='button'],
+  a {
+    touch-action: manipulation;
+  }
+  button:not(:disabled) {
+    cursor: pointer;
+  }
+}
+
+/* ── Hoja inferior / diálogo ─────────────────────────────────────────── */
+dialog.sheet {
+  transition:
+    translate 0.28s cubic-bezier(0.32, 0.72, 0, 1),
+    opacity 0.2s,
+    overlay 0.28s allow-discrete,
+    display 0.28s allow-discrete;
+  translate: 0 100%;
+  opacity: 0;
+}
+dialog.sheet[open] {
+  translate: 0 0;
+  opacity: 1;
+  @starting-style {
+    translate: 0 100%;
+    opacity: 0;
+  }
+}
+dialog.sheet::backdrop {
+  background: rgb(8 10 18 / 0);
+  transition:
+    background 0.28s,
+    overlay 0.28s allow-discrete,
+    display 0.28s allow-discrete;
+}
+dialog.sheet[open]::backdrop {
+  background: rgb(8 10 18 / 0.5);
+  @starting-style {
+    background: rgb(8 10 18 / 0);
+  }
+}
+@media (min-width: 640px) {
+  dialog.sheet {
+    translate: 0 16px;
+  }
+  dialog.sheet[open] {
+    @starting-style {
+      translate: 0 16px;
+    }
+  }
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    translate: 0 -8px;
+  }
+}
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    translate: 0 14px;
+  }
+}
+.animate-toast {
+  animation: toast-in 0.22s ease-out;
+}
+.animate-page {
+  animation: fade-up 0.5s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+/* Las tarjetas de una página entran escalonadas. */
+.animate-page > * {
+  animation: fade-up 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
+}
+.animate-page > *:nth-child(2) { animation-delay: 60ms; }
+.animate-page > *:nth-child(3) { animation-delay: 120ms; }
+.animate-page > *:nth-child(4) { animation-delay: 180ms; }
+.animate-page > *:nth-child(n + 5) { animation-delay: 240ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ── Mapa (Leaflet) ──────────────────────────────────────────────────── */
+.leaflet-container {
+  font-family: inherit;
+  background: var(--surface-2);
+  /* Contexto de apilamiento propio: los paneles de Leaflet no tapan cabecera ni hojas. */
+  isolation: isolate;
+}
+[data-theme='dark'] .leaflet-tile-pane {
+  filter: invert(1) hue-rotate(180deg) brightness(0.95) contrast(0.9) saturate(0.7);
+}
+[data-theme='contrast'] .leaflet-tile-pane {
+  filter: grayscale(1) contrast(1.35);
+}
+.leaflet-control-attribution {
+  background: color-mix(in srgb, var(--surface) 80%, transparent) !important;
+  color: var(--fg-muted) !important;
+  font-size: 10px;
+}
+.leaflet-control-attribution a {
+  color: inherit !important;
+}
+.leaflet-bar {
+  border: var(--border-w) solid var(--border) !important;
+  border-radius: 0.75rem !important;
+  overflow: hidden;
+  box-shadow: var(--shadow-card) !important;
+}
+.leaflet-bar a {
+  background: var(--surface) !important;
+  color: var(--fg) !important;
+  border-color: var(--border) !important;
+  width: 36px !important;
+  height: 36px !important;
+  line-height: 36px !important;
+}
+.map-pin {
+  filter: drop-shadow(0 3px 4px rgb(0 0 0 / 0.35));
+}
+.leaflet-marker-draggable {
+  cursor: grab;
+}
+
+/* ── Control deslizante ──────────────────────────────────────────────── */
+input[type='range'].slider {
+  appearance: none;
+  height: 2.75rem; /* objetivo táctil de 44 px */
+  width: 100%;
+  background: transparent;
+  cursor: pointer;
+}
+input[type='range'].slider::-webkit-slider-runnable-track {
+  height: 0.5rem;
+  border-radius: 999px;
+  background: linear-gradient(to right, var(--accent) var(--fill, 0%), var(--border-strong) var(--fill, 0%));
+}
+input[type='range'].slider::-moz-range-track {
+  height: 0.5rem;
+  border-radius: 999px;
+  background: linear-gradient(to right, var(--accent) var(--fill, 0%), var(--border-strong) var(--fill, 0%));
+}
+input[type='range'].slider::-webkit-slider-thumb {
+  appearance: none;
+  margin-top: -0.625rem;
+  height: 1.75rem;
+  width: 1.75rem;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 3px solid var(--accent);
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.25);
+}
+input[type='range'].slider::-moz-range-thumb {
+  height: 1.375rem;
+  width: 1.375rem;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 3px solid var(--accent);
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.25);
+}
+input[type='range'].slider:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  border-radius: 999px;
+}

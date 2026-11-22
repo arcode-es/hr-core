@@ -1,0 +1,83 @@
+# Pruebas en cada cambio: tipos, API contra PostgreSQL + PostGIS y recorridos de navegador.
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+
+    services:
+      postgres:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_USER: hr
+          POSTGRES_PASSWORD: hr_ci_password
+          POSTGRES_DB: hr_gestion
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U hr -d hr_gestion"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
+    env:
+      NODE_ENV: test
+      TZ: UTC
+      DATABASE_URL: postgresql://hr:hr_ci_password@localhost:5432/hr_gestion?schema=public
+      # Secretos solo de prueba: la API exige 32 caracteres como mínimo.
+      JWT_ACCESS_SECRET: ci-access-secret-0123456789abcdef0123456789
+      JWT_REFRESH_SECRET: ci-refresh-secret-0123456789abcdef012345678
+      STORAGE_DRIVER: local
+      STORAGE_LOCAL_DIR: ./storage
+      EMAIL_DRIVER: log
+      VITE_API_URL: http://localhost:3000/api/v1
+      CI: 'true'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Dependencias
+        run: pnpm install --frozen-lockfile
+
+      - name: Compilar
+        run: pnpm build
+
+      - name: Migraciones
+        run: pnpm --filter @hr/api exec prisma migrate deploy
+
+      - name: Tipos
+        run: pnpm -r typecheck
+
+      - name: Pruebas de la API
+        run: pnpm test
+
+      - name: Navegador para los recorridos
+        run: pnpm --filter @hr/e2e exec playwright install --with-deps chromium
+
+      - name: Recorridos de navegador
+        run: pnpm e2e --trace off
+
+      - name: Capturas de los fallos
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-resultados
+          path: apps/e2e/test-results
+          retention-days: 7

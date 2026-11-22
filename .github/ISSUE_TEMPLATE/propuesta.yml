@@ -1,0 +1,15 @@
+name: Propuesta / Feature request
+description: Una idea para mejorar HR-Core / An idea to improve HR-Core
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problema
+    attributes:
+      label: Qué problema resuelve / Problem it solves
+      description: Cuéntanos la situación de tu empresa. / Tell us about your company's situation.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: Cómo lo imaginas / How you picture it

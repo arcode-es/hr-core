@@ -1,0 +1,24 @@
+# Servidor con un proxy inverso en otro contenedor (Caddy, Traefik, nginx): une `web` y `api`
+# a una red compartida con él, sin publicar puertos. La red se crea una vez, fuera de este
+# proyecto, para que sobreviva a un `docker compose down`:
+#
+#   docker network create hr-core-proxy
+#
+# y en .env:  COMPOSE_FILE=docker-compose.yml:docker-compose.proxy.yml
+# El proxy los alcanza como hr-core-web:80 y hr-core-api:3000.
+services:
+  api:
+    networks:
+      default:
+      proxy:
+        aliases: ["hr-core-api"]
+  web:
+    networks:
+      default:
+      proxy:
+        aliases: ["hr-core-web"]
+
+networks:
+  proxy:
+    name: ${PROXY_NETWORK:-hr-core-proxy}
+    external: true

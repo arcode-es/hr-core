@@ -1,0 +1,23 @@
+{
+  "name": "hr-gestion",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Plataforma de control horario geolocalizado, gastos y gestión documental",
+  "packageManager": "pnpm@10.28.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @hr/shared build && pnpm -r --parallel dev",
+    "build": "pnpm -r build",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "e2e": "pnpm --filter @hr/e2e e2e",
+    "db:migrate": "pnpm --filter @hr/api db:migrate",
+    "db:deploy": "pnpm --filter @hr/api db:deploy",
+    "infra:up": "docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d postgres",
+    "docker:up": "docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build",
+    "infra:down": "docker compose down"
+  }
+}

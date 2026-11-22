@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Dudas de instalación y uso / Installation and usage questions
+    url: https://github.com/arcode-es/hr-core/discussions
+    about: Pregunta en Discussions / Ask in Discussions
+  - name: Versión gestionada por ARcode / Managed hosting by ARcode
+    url: https://arcode.es/HR-core/
+    about: Instalación, servidor, copias y soporte incluidos / Installation, server, backups and support included

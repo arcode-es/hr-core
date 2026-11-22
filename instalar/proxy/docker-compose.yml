@@ -1,0 +1,28 @@
+# Proxy inverso delante de HR-Core (Caddy). Es el único contenedor que publica puertos.
+# Su Caddyfile lo escribe instalar.sh según la forma de acceso elegida.
+#   Con dominio: 80 y 443 abiertos a internet, certificado de Let's Encrypt automático.
+#   Con Tailscale o en local: solo 127.0.0.1:PUERTO_LOCAL; nada queda expuesto a internet.
+name: hr-core-proxy
+services:
+  caddy:
+    image: caddy:2.11-alpine
+    container_name: hr-core-proxy
+    restart: unless-stopped
+    mem_limit: 128m
+    ports:
+      - "${ESCUCHA_HTTP:-80:80}"
+      - "${ESCUCHA_HTTPS:-443:443}"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks: [proxy]
+
+volumes:
+  caddy_data:
+  caddy_config:
+
+networks:
+  proxy:
+    name: ${PROXY_NETWORK:-hr-core-proxy}
+    external: true

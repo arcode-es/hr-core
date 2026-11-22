@@ -1,0 +1,108 @@
+/* Maquetación de los manuales de HR-Core (A4, se imprime con Chromium). Sistema de diseño: docs/diseno/SISTEMA.md. */
+@font-face { font-family: 'DM Sans'; src: url('../../apps/landing/public/assets/fonts/dm-sans-latin-wght-normal.woff2') format('woff2'); font-weight: 100 1000; }
+@font-face { font-family: 'Geist Mono'; src: url('../../apps/landing/public/assets/fonts/geist-mono-latin-wght-normal.woff2') format('woff2'); font-weight: 100 900; }
+:root {
+  --marca: #0067d6;
+  --marca-oscura: #004a9c;
+  --tinta: #050b16;
+  --texto: #1d2635;
+  --suave: #5b6880;
+  --linea: #dae2ee;
+  --fondo: #f2f5fa;
+  --mono: 'Geist Mono', ui-monospace, monospace;
+}
+@page {
+  size: A4;
+  margin: 20mm 17mm 20mm;
+  @bottom-left { content: 'HR-Core · ' string(manual); font: 8pt 'DM Sans', system-ui, sans-serif; color: #9ca3af; }
+  @bottom-right { content: counter(page); font: 600 8.5pt 'DM Sans', system-ui, sans-serif; color: #6b7280; }
+}
+@page :first {
+  margin: 0;
+  @bottom-left { content: none; }
+  @bottom-right { content: none; }
+}
+* { box-sizing: border-box; }
+html { font: 10.2pt/1.55 'DM Sans', 'Helvetica Neue', Arial, system-ui, sans-serif; color: var(--texto); -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+body { margin: 0; }
+a { color: var(--marca); text-decoration: none; }
+p { margin: 0 0 2.6mm; orphans: 3; widows: 3; }
+strong { color: var(--tinta); }
+
+/* Portada */
+.portada { position: relative; overflow: hidden; height: 297mm; width: 210mm; padding: 26mm 22mm 20mm; display: flex; flex-direction: column; color: #fff; page-break-after: always;
+  background: radial-gradient(150mm 110mm at 50% 112%, #0a3a86 0%, transparent 70%), radial-gradient(180mm 90mm at 50% -10%, #06224f 0%, transparent 65%), #000409; }
+.portada::after { content: ''; position: absolute; left: -35mm; right: -35mm; bottom: -150mm; height: 250mm; border-radius: 50%;
+  background: repeating-radial-gradient(circle at 50% 50%, transparent 0 5.4mm, rgba(109,183,255,.34) 5.4mm 5.7mm), repeating-conic-gradient(from 0deg, transparent 0 2.2deg, #000409 2.2deg 3.4deg);
+  background-blend-mode: multiply; -webkit-mask-image: radial-gradient(circle at 50% 50%, #000 30%, transparent 70%); mask-image: radial-gradient(circle at 50% 50%, #000 30%, transparent 70%); opacity: .9; }
+.portada > * { position: relative; z-index: 1; }
+.portada .logo { display: flex; align-items: center; gap: 4mm; font-weight: 600; font-size: 17pt; letter-spacing: -.02em; }
+.portada .logo img { width: 14mm; height: 14mm; border-radius: 3.6mm; }
+.portada .tipo { align-self: flex-start; margin-top: 56mm; padding: 1.6mm 4mm; border: .25mm solid rgba(255,255,255,.22); border-radius: 99mm; background: rgba(0,0,0,.5); font: 500 7.6pt var(--mono); letter-spacing: .1em; text-transform: uppercase; color: rgba(255,255,255,.75); string-set: manual content(); }
+.portada h1 { font-size: 40pt; font-weight: 450; line-height: 1.04; letter-spacing: -.035em; margin: 7mm 0 7mm; max-width: 155mm; }
+.portada .entrada { font-size: 12.5pt; line-height: 1.5; max-width: 135mm; color: rgba(255,255,255,.7); }
+.portada .pie { margin-top: auto; display: flex; justify-content: space-between; align-items: flex-end; font-size: 9pt; color: rgba(255,255,255,.6); }
+.portada .pie b { display: block; font-size: 10.5pt; font-weight: 500; color: #fff; }
+
+/* Índice */
+.indice { page-break-after: always; }
+.indice h2 { font-weight: 480; font-size: 22pt; color: var(--tinta); letter-spacing: -.02em; margin: 0 0 8mm; }
+.indice .parte { font-family: var(--mono); font-size: 8.5pt; letter-spacing: .16em; text-transform: uppercase; color: var(--marca); font-weight: 600; margin: 6mm 0 2mm; }
+.indice ol { list-style: none; margin: 0; padding: 0; }
+.indice li { border-bottom: .25mm solid var(--linea); }
+.indice li a { display: flex; gap: 4mm; align-items: baseline; padding: 2.1mm 0; color: var(--texto); }
+.indice li .n { width: 8mm; font-weight: 600; color: var(--marca); font-variant-numeric: tabular-nums; }
+.indice li .t { font-weight: 600; color: var(--tinta); }
+.indice li .d { margin-left: auto; text-align: right; color: var(--suave); font-size: 8.6pt; max-width: 95mm; }
+
+/* Capítulos */
+.separador { page-break-before: always; page-break-after: always; height: 250mm; display: flex; flex-direction: column; justify-content: center; }
+.separador span { font-family: var(--mono); font-size: 9pt; letter-spacing: .2em; text-transform: uppercase; color: var(--marca); font-weight: 600; }
+.separador h2 { font-weight: 450; font-size: 30pt; line-height: 1.1; letter-spacing: -.02em; color: var(--tinta); margin: 4mm 0; max-width: 140mm; }
+.separador p { font-size: 12pt; color: var(--suave); max-width: 130mm; }
+.capitulo { page-break-before: always; }
+.capitulo > header { border-bottom: .6mm solid var(--marca); padding-bottom: 3mm; margin-bottom: 6mm; }
+.capitulo > header .n { font-family: var(--mono); font-size: 8.5pt; letter-spacing: .18em; text-transform: uppercase; color: var(--marca); font-weight: 600; }
+.capitulo > header h2 { font-weight: 480; font-size: 21pt; line-height: 1.15; letter-spacing: -.02em; color: var(--tinta); margin: 1mm 0 1.5mm; }
+.capitulo > header p { color: var(--suave); margin: 0; font-size: 10.5pt; }
+h3 { font-weight: 560; font-size: 12.5pt; color: var(--tinta); margin: 6.5mm 0 2.2mm; letter-spacing: -.01em; page-break-after: avoid; }
+h4 { font-size: 10.2pt; color: var(--marca-oscura); margin: 4mm 0 1.5mm; page-break-after: avoid; }
+ul, ol { margin: 0 0 3mm; padding-left: 5.5mm; }
+li { margin-bottom: 1.1mm; }
+ol.pasos { list-style: none; counter-reset: paso; padding-left: 0; }
+ol.pasos > li { counter-increment: paso; position: relative; padding-left: 9mm; margin-bottom: 2mm; page-break-inside: avoid; }
+ol.pasos > li::before { content: counter(paso); position: absolute; left: 0; top: -.2mm; width: 5.6mm; height: 5.6mm; border-radius: 50%; background: var(--marca); color: #fff; font-weight: 600; font-size: 8.4pt; display: flex; align-items: center; justify-content: center; }
+.boton { font-weight: 600; color: var(--marca-oscura); background: #e2eeff; border: .2mm solid #b5d2fb; border-radius: 1.4mm; padding: 0 1.3mm; white-space: nowrap; font-size: .94em; }
+
+.nota { border-radius: 2.5mm; padding: 3mm 4mm; margin: 4mm 0; page-break-inside: avoid; background: #eaf3ff; border-left: 1mm solid var(--marca); }
+.nota > strong { font-family: var(--mono); display: block; font-size: 8pt; letter-spacing: .12em; text-transform: uppercase; color: var(--marca); margin-bottom: .8mm; }
+.nota p { margin: 0; }
+.nota.ojo { background: #fff7ed; border-color: #ea580c; } .nota.ojo > strong { color: #c2410c; }
+.nota.truco { background: #ecfdf5; border-color: #059669; } .nota.truco > strong { color: #047857; }
+.nota.demo { background: #fefce8; border-color: #ca8a04; } .nota.demo > strong { color: #a16207; }
+
+table { width: 100%; border-collapse: collapse; margin: 3mm 0 4mm; font-size: 9.2pt; page-break-inside: avoid; }
+th { text-align: left; background: var(--fondo); color: var(--tinta); font-size: 8.2pt; letter-spacing: .06em; text-transform: uppercase; padding: 2mm 2.5mm; border-bottom: .4mm solid #b5d2fb; }
+td { padding: 2mm 2.5mm; border-bottom: .25mm solid var(--linea); vertical-align: top; }
+
+/* Capturas */
+figure { margin: 4.5mm 0 5mm; page-break-inside: avoid; }
+figcaption { font-size: 8.3pt; color: var(--suave); text-align: center; margin-top: 1.8mm; line-height: 1.35; }
+.marco { overflow: hidden; background: #000409; }
+.marco img { display: block; width: 100%; }
+.moviles { display: flex; justify-content: center; gap: 7mm; margin: 4.5mm 0 5mm; page-break-inside: avoid; }
+.moviles figure { margin: 0; width: 50mm; }
+.moviles.n1 figure { width: 54mm; }
+.movil .marco { border: 1.5mm solid #0b1220; border-radius: 6.5mm; box-shadow: 0 1.5mm 5mm rgba(5,11,22,.18); max-height: 108mm; }
+.movil .marco img { object-fit: cover; object-position: top; }
+.pantalla .marco { border: .3mm solid #24344f; border-top: 4mm solid #0b1220; border-radius: 2.2mm; box-shadow: 0 1.5mm 5mm rgba(5,11,22,.13); max-height: 122mm; }
+.pantalla.tablet { width: 120mm; margin-left: auto; margin-right: auto; }
+.pantalla.tablet .marco { border: 2mm solid #0b1220; border-radius: 4mm; }
+.recorte { width: 118mm; margin-left: auto; margin-right: auto; }
+.recorte.ancho { width: 150mm; }
+.recorte.estrecho { width: 82mm; }
+.recorte .marco { border: .3mm solid #24344f; border-radius: 2.2mm; box-shadow: 0 1mm 4mm rgba(5,11,22,.1); max-height: 105mm; }
+
+.contra { page-break-before: always; height: 250mm; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; color: var(--suave); }
+.contra img { width: 16mm; border-radius: 4mm; margin-bottom: 5mm; }
+.contra h2 { color: var(--tinta); font-size: 16pt; margin: 0 0 2mm; }

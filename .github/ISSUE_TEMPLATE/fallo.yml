@@ -1,0 +1,36 @@
+name: Fallo / Bug report
+description: Algo no funciona como debería / Something does not work as expected
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Para fallos de seguridad no abras una incidencia: lee SECURITY.md. / For security issues do not open an issue: read SECURITY.md.
+  - type: textarea
+    id: que
+    attributes:
+      label: Qué pasa / What happens
+      description: Qué hiciste, qué esperabas y qué ocurrió. / What you did, what you expected and what happened.
+    validations:
+      required: true
+  - type: textarea
+    id: pasos
+    attributes:
+      label: Pasos para reproducirlo / Steps to reproduce
+      placeholder: "1. …\n2. …"
+  - type: input
+    id: version
+    attributes:
+      label: Versión / Version
+      description: La de HR_CORE_VERSION en .env o la que muestra /api/v1/health. / HR_CORE_VERSION in .env or the one shown by /api/v1/health.
+  - type: dropdown
+    id: acceso
+    attributes:
+      label: Instalación / Installation
+      options: [dominio / domain, Tailscale, local, desarrollo / development, otra / other]
+  - type: textarea
+    id: registro
+    attributes:
+      label: Registro / Logs
+      description: Salida de `docker compose logs --tail 100 api` (sin datos personales ni claves). / Output of `docker compose logs --tail 100 api` (no personal data or secrets).
+      render: text
