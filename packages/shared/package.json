@@ -1,6 +1,6 @@
 {
   "name": "@hr/shared",
-  "version": "0.1.0",
+  "version": "1.0.1",
   "private": true,
   "description": "Enumerados y tipos compartidos entre API y web",
   "main": "./dist/index.js",

@@ -14,7 +14,9 @@ RUN pnpm --filter @hr/shared build && pnpm --filter @hr/api build
 
 FROM node:22-alpine AS runtime
 RUN apk add --no-cache openssl
-ENV NODE_ENV=production
+# Versión publicada (la pasa el flujo de imágenes al etiquetar); la muestra /api/v1/health.
+ARG APP_VERSION=dev
+ENV NODE_ENV=production APP_VERSION=$APP_VERSION
 COPY --from=build --chown=node:node /repo /repo
 WORKDIR /repo/apps/api
 # Carpeta de archivos para STORAGE_DRIVER=local (se monta como volumen).

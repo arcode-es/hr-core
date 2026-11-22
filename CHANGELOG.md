@@ -2,6 +2,12 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/); versiones con [SemVer](https://semver.org/lang/es/).
 
+## [1.0.1] - 2026-11-22
+
+### Corregido / Fixed
+
+- `/api/v1/health` muestra la versión real de la imagen en lugar de `0.1.0`. / `/api/v1/health` now reports the real image version instead of `0.1.0`.
+
 ## [1.0.0] - 2026-11-22
 
 Primera versión publicada como código abierto (AGPL-3.0). / First open-source release (AGPL-3.0).

@@ -6,7 +6,8 @@ import type { Env } from '../config/env';
 import { DEMO_ACCOUNTS, DEMO_KIOSK_PIN } from '../demo/accounts';
 import { Deployment } from '../deployment/deployment';
 
-const VERSION = process.env.npm_package_version ?? '0.1.0';
+/** La pone la imagen publicada (APP_VERSION, desde la etiqueta de la versión); en desarrollo, package.json. */
+const VERSION = process.env.APP_VERSION || process.env.npm_package_version || 'dev';
 
 /** Lo que la web necesita saber de la instalación antes de que nadie entre. */
 @Public()

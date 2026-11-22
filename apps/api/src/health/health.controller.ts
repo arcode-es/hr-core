@@ -3,7 +3,8 @@ import type { HealthStatus } from '@hr/shared';
 import { Public } from '../common/context';
 import { PrismaService } from '../prisma/prisma.service';
 
-const VERSION = process.env.npm_package_version ?? '0.1.0';
+/** La pone la imagen publicada (APP_VERSION, desde la etiqueta de la versión); en desarrollo, package.json. */
+const VERSION = process.env.APP_VERSION || process.env.npm_package_version || 'dev';
 
 @Public()
 @Controller('health')
