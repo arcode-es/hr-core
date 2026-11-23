@@ -2,6 +2,12 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/); versiones con [SemVer](https://semver.org/lang/es/).
 
+## [1.0.2] - 2026-11-23
+
+### Corregido / Fixed
+
+- Las imágenes se compilan en ejecutores nativos amd64 y arm64. La 1.0.1 no llegó a publicar la imagen de la API (la compilación ARM emulada se colgó): usa la 1.0.2. / Images are now built on native amd64 and arm64 runners. 1.0.1 never published its API image (the emulated ARM build hung): use 1.0.2.
+
 ## [1.0.1] - 2026-11-22
 
 ### Corregido / Fixed
