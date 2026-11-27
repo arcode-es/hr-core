@@ -13,6 +13,14 @@ updates:
   - package-ecosystem: docker
     directory: /apps/api
     schedule: { interval: monthly }
+    ignore:
+      # Los saltos de versión mayor de Node se hacen a mano y probados (Node 25+ ya no trae corepack).
+      - dependency-name: node
+        update-types: [version-update:semver-major]
   - package-ecosystem: docker
     directory: /apps/web
     schedule: { interval: monthly }
+    ignore:
+      # Los saltos de versión mayor de Node se hacen a mano y probados (Node 25+ ya no trae corepack).
+      - dependency-name: node
+        update-types: [version-update:semver-major]

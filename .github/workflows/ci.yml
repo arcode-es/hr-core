@@ -81,3 +81,35 @@ jobs:
           name: e2e-resultados
           path: apps/e2e/test-results
           retention-days: 7
+
+  # Las imágenes también se compilan en cada cambio: un Dockerfile roto (p. ej. una versión base
+  # incompatible) no lo detectan las pruebas de arriba, que no usan Docker.
+  imagenes:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [api, web]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/${{ matrix.app }}/Dockerfile
+          push: false
+          load: true
+          tags: hr-core-${{ matrix.app }}:ci
+          cache-from: type=gha,scope=ci-${{ matrix.app }}
+          cache-to: type=gha,mode=max,scope=ci-${{ matrix.app }}
+      - name: Arranca
+        run: |
+          if [ "${{ matrix.app }}" = web ]; then
+            docker run -d --name prueba -p 8080:80 -e APP_NAME="Prueba CI" hr-core-web:ci
+            for i in $(seq 1 20); do curl -fs http://127.0.0.1:8080/ | grep -q "<title>Prueba CI</title>" && exit 0; sleep 1; done
+            docker logs prueba; exit 1
+          else
+            docker run --rm hr-core-api:ci node -e "require('argon2').hash('x').then(() => console.log('argon2 ok')); require('@prisma/client')"
+          fi
+
