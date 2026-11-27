@@ -30,6 +30,7 @@ guide explains how to install it, make it available to your staff, adapt it to y
 - [Manage](manage.md): adding your staff, backups and restore, updating, logs, moving to another server.
 - [Troubleshooting](troubleshooting.md).
 - [Advanced options](advanced.md): publishing under a path, your own nginx, S3 storage, every setting.
+- [Build your tool on HR-Core](build-on.md): add your own features following the app's pattern.
 - [Development and architecture](../es/desarrollo.md) (in Spanish).
 - PDF user guides with screenshots, ready to hand out: [employees](../manuales/manual-trabajadores.pdf) (in Spanish),
   [managers](../manuales/manual-responsables.pdf) (in Spanish) and [administration](../manuales/manual-administracion.pdf) (in Spanish).

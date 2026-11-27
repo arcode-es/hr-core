@@ -75,6 +75,7 @@ Starting from scratch with a cloud server? → [Install on a VPS](docs/en/vps.md
   [manage](docs/en/manage.md) (backups, updates, moving servers) and [troubleshooting](docs/en/troubleshooting.md).
 - PDF user guides to hand out (in Spanish): [staff](docs/manuales/manual-trabajadores.pdf),
   [managers](docs/manuales/manual-responsables.pdf) and [admins](docs/manuales/manual-administracion.pdf).
+- [Build your own HR tool on HR-Core](docs/en/build-on.md).
 - [Development and architecture](docs/es/desarrollo.md) (in Spanish).
 
 ## Rather have it managed for you?

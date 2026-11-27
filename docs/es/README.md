@@ -32,6 +32,7 @@ y mantenerla.
   mover a otro servidor.
 - [Problemas frecuentes](problemas.md).
 - [Opciones avanzadas](avanzado.md): publicar bajo una ruta, tu propio nginx, almacenamiento S3, todas las variables.
+- [Construir tu herramienta sobre HR-Core](construir.md): añadir funciones propias siguiendo el patrón de la app.
 - [Desarrollo y arquitectura](desarrollo.md).
 - Manuales de uso en PDF con capturas, para repartir: [trabajadores](../manuales/manual-trabajadores.pdf),
   [responsables](../manuales/manual-responsables.pdf) y [administración](../manuales/manual-administracion.pdf).

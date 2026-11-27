@@ -75,6 +75,7 @@ El instalador pregunta cómo llegará la plantilla y lo deja todo listo, con cop
   [problemas frecuentes](docs/es/problemas.md).
 - Manuales de uso en PDF, para repartir: [trabajadores](docs/manuales/manual-trabajadores.pdf),
   [responsables](docs/manuales/manual-responsables.pdf) y [administración](docs/manuales/manual-administracion.pdf).
+- [Construir tu propia herramienta de RR. HH. sobre HR-Core](docs/es/construir.md).
 - [Desarrollo y arquitectura](docs/es/desarrollo.md).
 
 ## ¿Prefieres que lo gestionemos nosotros?
