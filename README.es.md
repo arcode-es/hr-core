@@ -83,6 +83,10 @@ HR-Core es gratis y lo será siempre. Si no quieres ocuparte del servidor, [ARco
 instala, lo personaliza con tu marca y lo mantiene por ti: servidor propio para tu empresa, copias, actualizaciones
 y soporte, con una cuota mensual según el tamaño de la plantilla.
 
+## Hoja de ruta y comunidad
+
+Mira lo que viene en la [hoja de ruta](ROADMAP.md), pregunta y comparte ideas en [Discussions](https://github.com/arcode-es/hr-core/discussions) y, si quieres ayudar, elige una [incidencia para empezar](https://github.com/arcode-es/hr-core/labels/good%20first%20issue).
+
 ## Contribuir
 
 Los avisos de fallos, las ideas, las traducciones y el código son bienvenidos: lee [CONTRIBUTING.md](CONTRIBUTING.md).

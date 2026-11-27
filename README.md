@@ -83,6 +83,10 @@ HR-Core is free and always will be. If you would rather not run a server, [ARcod
 installs it, brands it for your company and runs it for you: a dedicated server for your company, backups, updates
 and support, for a monthly fee based on team size.
 
+## Roadmap and community
+
+See what's coming in the [roadmap](ROADMAP.md), ask questions and share ideas in [Discussions](https://github.com/arcode-es/hr-core/discussions), and pick a [good first issue](https://github.com/arcode-es/hr-core/labels/good%20first%20issue) if you want to help.
+
 ## Contributing
 
 Bug reports, ideas, translations and code are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md). For security
