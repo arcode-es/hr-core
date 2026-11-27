@@ -38,7 +38,7 @@ jobs:
           # Así la versión sale como 1.2.3 (sin la «v» de la etiqueta) en /api/v1/health.
           tags: type=semver,pattern={{version}}
       - id: build
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: apps/${{ matrix.app }}/Dockerfile
