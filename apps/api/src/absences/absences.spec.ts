@@ -133,7 +133,7 @@ describe('Festivos y ausencias', () => {
     await ask(inspector, { type: 'VACATION', startDate: '2031-05-01', endDate: '2031-05-02' }).expect(403);
     await http.post(`/api/v1/absences/${sick.body.id}/review`).set(as(inspector)).send({ decision: 'APPROVE' }).expect(403);
     // El empleado no registra ausencias de otros; la responsable las suyas quedan aprobadas.
-    await ask(worker, { type: 'VACATION', startDate: '2031-05-01', endDate: '2031-05-01', userId: workerId.replace(/.$/, '0') }).expect(403);
+    await ask(worker, { type: 'VACATION', startDate: '2031-05-01', endDate: '2031-05-01', userId: randomUUID() }).expect(403);
     const own = await ask(boss, { type: 'PERSONAL', startDate: '2031-05-05', endDate: '2031-05-05' }).expect(201);
     expect(own.body.status).toBe('APPROVED');
     // Anular: lo pendiente, sí; dos veces, no.
