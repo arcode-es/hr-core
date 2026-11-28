@@ -82,10 +82,13 @@ describe('Avisos, panel, ajustes de empresa y contraseña', () => {
     const list = await inbox(worker);
     expect(list.unread).toBe(1);
     expect(list.items[0]).toMatchObject({ type: 'SHIFT_PUBLISHED', payload: { count: 3, link: '/schedule' }, read: false, organizationName: `Avisos ${run}` });
-    await new Promise((r) => setTimeout(r, 200));
+    // El envío push y la limpieza de la suscripción caducada van en segundo plano: se espera a que terminen
+    // (con un tope) en vez de dar un tiempo fijo, que en una máquina lenta se queda corto.
+    const caducadas = () => prisma.pushSubscription.count({ where: { endpoint: { contains: `${run}/caducada` } } });
+    for (let i = 0; i < 50 && (!sent.some((m) => m.endpoint.endsWith(`${run}/movil`)) || (await caducadas()) > 0); i++) await new Promise((r) => setTimeout(r, 100));
     expect(sent.at(-1)).toMatchObject({ endpoint: `https://push.example/${run}/movil`, body: { body: 'You have 3 new published shifts.', link: '/schedule' } });
     // La suscripción que el navegador dio de baja se ha limpiado sola.
-    expect(await prisma.pushSubscription.count({ where: { endpoint: { contains: `${run}/caducada` } } })).toBe(0);
+    expect(await caducadas()).toBe(0);
     expect(await types(mate)).toEqual([]);
   });
 
