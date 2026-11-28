@@ -16,7 +16,7 @@ ARG VITE_APP_NAME=HR-Core
 ENV VITE_API_URL=$VITE_API_URL VITE_BASE_PATH=$VITE_BASE_PATH VITE_APP_NAME=$VITE_APP_NAME
 RUN pnpm --filter @hr/shared build && pnpm --filter @hr/web build
 
-FROM nginx:1.27-alpine
+FROM nginx:1.29-alpine
 COPY apps/web/nginx.conf /etc/nginx/conf.d/default.conf
 COPY apps/web/security-headers.conf /etc/nginx/snippets/security-headers.conf
 COPY --from=build /repo/apps/web/dist /usr/share/nginx/html
